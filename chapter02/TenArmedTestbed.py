@@ -12,6 +12,8 @@ from __future__ import print_function
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
+import math
+
 
 class Bandit:
     # @kArm: # of arms
@@ -48,21 +50,24 @@ class Bandit:
 
         # initialize real rewards with N(0,1) distribution and estimations with desired initial value
         for i in range(0, self.k):
-            self.qTrue.append(np.random.randn() + trueReward)
-            self.qEst[i] = initial
+            # np.random.randn() 生成标准正态分布(μ=0,σ=1)
+            self.qTrue.append(np.random.randn() + trueReward)   # 每个action的奖励分布，其中trueReward为该动作的值q_*(a)
+            self.qEst[i] = initial                              # Q估计的初始化
             self.actionCount.append(0)
 
         self.bestAction = np.argmax(self.qTrue)
 
     # get an action for this bandit, explore or exploit?
     def getAction(self):
-        # explore
+        # explore 探索策略
         if self.epsilon > 0:
+            # numpy.random.binomial(n, p, size=None) for n trials and p probability of success.
+            # return sample is equal to the number of successes over the n trials.
             if np.random.binomial(1, self.epsilon) == 1:
-                np.random.shuffle(self.indices)
-                return self.indices[0]
+                np.random.shuffle(self.indices)  # 打乱indices的顺序
+                return self.indices[0]  # 返回选中的bandit arm，即选中的动作
 
-        # exploit
+        # exploit 利用策略
         if self.UCBParam is not None:
             UCBEst = self.qEst + \
                      self.UCBParam * np.sqrt(np.log(self.time + 1) / (np.asarray(self.actionCount) + 1))
@@ -97,16 +102,19 @@ class Bandit:
             self.qEst[action] += self.stepSize * (reward - self.qEst[action])
         return reward
 
+
 figureIndex = 0
+
 
 # for figure 2.1
 def figure2_1():
     global figureIndex
     plt.figure(figureIndex)
     figureIndex += 1
-    sns.violinplot(data=np.random.randn(200,10) + np.random.randn(10))
+    sns.violinplot(data=np.random.randn(200, 10) + np.random.randn(10))
     plt.xlabel("Action")
     plt.ylabel("Reward distribution")
+
 
 def banditSimulation(nBandits, time, bandits):
     bestActionCounts = [np.zeros(time, dtype='float') for _ in range(0, len(bandits))]
@@ -125,6 +133,7 @@ def banditSimulation(nBandits, time, bandits):
 
 
 # for figure 2.2
+# sample-average即样本平均，贪心算法
 def epsilonGreedy(nBandits, time):
     epsilons = [0, 0.1, 0.01]
     bandits = []
@@ -135,14 +144,14 @@ def epsilonGreedy(nBandits, time):
     plt.figure(figureIndex)
     figureIndex += 1
     for eps, counts in zip(epsilons, bestActionCounts):
-        plt.plot(counts, label='epsilon = '+str(eps))
+        plt.plot(counts, label='epsilon = ' + str(eps))
     plt.xlabel('Steps')
     plt.ylabel('% optimal action')
     plt.legend()
     plt.figure(figureIndex)
     figureIndex += 1
     for eps, rewards in zip(epsilons, averageRewards):
-        plt.plot(rewards, label='epsilon = '+str(eps))
+        plt.plot(rewards, label='epsilon = ' + str(eps))
     plt.xlabel('Steps')
     plt.ylabel('average reward')
     plt.legend()
@@ -182,7 +191,7 @@ def ucb(nBandits, time):
 
 # for figure 2.5
 def gradientBandit(nBandits, time):
-    bandits =[[], [], [], []]
+    bandits = [[], [], [], []]
     bandits[0] = [Bandit(gradient=True, stepSize=0.1, gradientBaseline=True, trueReward=4) for _ in range(0, nBandits)]
     bandits[1] = [Bandit(gradient=True, stepSize=0.1, gradientBaseline=False, trueReward=4) for _ in range(0, nBandits)]
     bandits[2] = [Bandit(gradient=True, stepSize=0.4, gradientBaseline=True, trueReward=4) for _ in range(0, nBandits)]
@@ -201,6 +210,7 @@ def gradientBandit(nBandits, time):
     plt.ylabel('% Optimal action')
     plt.legend()
 
+
 # Figure 2.6
 def figure2_6(nBandits, time):
     labels = ['epsilon-greedy', 'gradient bandit',
@@ -214,9 +224,10 @@ def figure2_6(nBandits, time):
                   np.arange(-4, 3),
                   np.arange(-2, 3)]
 
-    bandits = [[generator(pow(2, param)) for _ in range(0, nBandits)] for generator, parameter in zip(generators, parameters) for param in parameter]
+    bandits = [[generator(math.pow(2, param)) for _ in range(0, nBandits)] for generator, parameter in
+               zip(generators, parameters) for param in parameter]
     _, averageRewards = banditSimulation(nBandits, time, bandits)
-    rewards = np.sum(averageRewards, axis=1)/time
+    rewards = np.sum(averageRewards, axis=1) / time
 
     global figureIndex
     plt.figure(figureIndex)
@@ -224,14 +235,15 @@ def figure2_6(nBandits, time):
     i = 0
     for label, parameter in zip(labels, parameters):
         l = len(parameter)
-        plt.plot(parameter, rewards[i:i+l], label=label)
+        plt.plot(parameter, rewards[i:i + l], label=label)
         i += l
     plt.xlabel('Parameter(2^x)')
     plt.ylabel('Average reward')
     plt.legend()
 
 
-figure2_1()
+# figure2_1()
+# 2000次多臂赌博机实验, 每个实验执行1000步
 epsilonGreedy(2000, 1000)
 optimisticInitialValues(2000, 1000)
 ucb(2000, 1000)
